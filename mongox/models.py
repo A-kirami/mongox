@@ -125,9 +125,7 @@ class QuerySet(typing.Generic[T]):
         """Get first document matching the criteria or None."""
 
         objects = await self.limit(1).all()
-        if not objects:
-            return None
-        return objects[0]
+        return objects[0] if objects else None
 
     async def get(self) -> T:
         """Get the only document matching or throw exceptions."""
@@ -149,8 +147,9 @@ class QuerySet(typing.Generic[T]):
         }
 
         values, _, validation_error = pydantic.validate_model(
-            self._cls_model, {**defaults, **data}
+            self._cls_model, defaults | data
         )
+
 
         if validation_error:
             raise validation_error
@@ -228,13 +227,11 @@ class QuerySet(typing.Generic[T]):
     async def update(self, **kwargs: typing.Any) -> typing.List[T]:
         """Update the matching criteria with provided info."""
 
-        field_definitions = {
+        if field_definitions := {
             name: (annotations, ...)
             for name, annotations in self._cls_model.__annotations__.items()
             if name in kwargs
-        }
-
-        if field_definitions:
+        }:
             pydantic_model: typing.Type[pydantic.BaseModel] = pydantic.create_model(  # type: ignore # noqa: E501
                 self._cls_model.__name__, **field_definitions
             )
@@ -282,8 +279,9 @@ class ModelMetaClass(pydantic.main.ModelMetaclass):
             cls.Meta.database = kwargs["db"]
 
             collection_name = kwargs.get(
-                "collection", normalize_class_name(cls.__name__) + "s"
+                "collection", f"{normalize_class_name(cls.__name__)}s"
             )
+
             cls.Meta.collection = kwargs["db"].get_collection(collection_name)
             cls.Meta.indexes = kwargs.get("indexes", [])
 
@@ -411,8 +409,7 @@ class Model(pydantic.BaseModel, metaclass=ModelMetaClass):
         if force:
             return await cls.Meta.collection._collection.drop_indexes()
 
-        index_names = [await cls.drop_index(index.name) for index in cls.Meta.indexes]
-        return index_names
+        return [await cls.drop_index(index.name) for index in cls.Meta.indexes]
 
     @classmethod
     def query(
