@@ -512,10 +512,12 @@ async def test_model_get_by_id() -> None:
 
 
 async def test_model_insert_many() -> None:
-    movies = []
     movie_names = ("The Dark Knight", "The Dark Knight Rises", "The Godfather")
-    for movie_name in movie_names:
-        movies.append(Movie(name=movie_name, year=random.randint(1970, 2020)))
+    movies = [
+        Movie(name=movie_name, year=random.randint(1970, 2020))
+        for movie_name in movie_names
+    ]
+
     movies_db = await Movie.insert_many(movies)
     for movie, movie_db in zip(movies, movies_db):
         assert movie.name == movie_db.name

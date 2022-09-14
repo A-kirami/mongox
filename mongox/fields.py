@@ -48,7 +48,7 @@ class ModelField:
     @property
     def _name(self) -> str:
         if self._parent:
-            return self._parent._name + "." + self._pydantic_field.alias
+            return f"{self._parent._name}.{self._pydantic_field.alias}"
         return self._pydantic_field.alias
 
     def __lt__(self, other: typing.Any) -> QueryExpression:
